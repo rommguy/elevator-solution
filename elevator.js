@@ -22,7 +22,7 @@ var Floor = {
 var obj = {
     init: function (elevators, floors) {
         var elevator = elevators[0]; // Let's use the first elevator
-        var floorButtons = [];
+        var floorObjects = [];
         var upQueue = [];
         var downQueue = [];
         var elevatorDirection = '';
@@ -31,41 +31,41 @@ var obj = {
 
         elevator.on('idle', function(){
             var currentFloor = elevator.currentFloor();
+            var topMostPressedFloor = _.findLastIndex(floorObjects, function(buttonsObj){
+                return buttonsObj.up || buttonsObj.down;
+            });
+            var bottomMostPressedFloor = _.findIndex(floorObjects, function(buttonsObj){
+                return buttonsObj.up || buttonsObj.down;
+            });
             switch (elevatorDirection) {
                 case 'up':
-                    var topMostPressedFloor = _.findLastIndex(floorButtons, function(buttonsObj){
-                        return buttonsObj.up || buttonsObj.down;
-                    });
                     if (topMostPressedFloor === -1){
                         // no pressed floors
                         return;
                     }
                     if (topMostPressedFloor > currentFloor){
-                        insertNewDest(floors.length - 1, elevatorDirection);
+                        insertNewDest(topMostPressedFloor, elevatorDirection);
                     } else {
                         elevatorDirection = 'down';
-                        insertNewDest(0, elevatorDirection);
+                        insertNewDest(bottomMostPressedFloor, elevatorDirection);
                     }
                     break;
                 case 'down':
-                    var bottomMostPressedFloor = _.findIndex(floorButtons, function(buttonsObj){
-                        return buttonsObj.up || buttonsObj.down;
-                    });
                     if (bottomMostPressedFloor === -1){
                         // no pressed floors
                         return;
                     }
                     if (bottomMostPressedFloor < currentFloor){
-                        insertNewDest(0, elevatorDirection);
+                        insertNewDest(bottomMostPressedFloor, elevatorDirection);
                     } else {
                         elevatorDirection = 'up';
-                        insertNewDest(floors.length - 1, elevatorDirection);
+                        insertNewDest(topMostPressedFloor, elevatorDirection);
                     }
                     break;
             }
         });
         elevator.on('stopped_at_floor', function(floorNum){
-            floorButtons[floorNum] = {};
+            floorObjects[floorNum] = {};
         });
         elevator.on('floor_button_pressed', function(floorNum){
             var currentFloor = elevator.currentFloor();
@@ -93,7 +93,7 @@ var obj = {
             if (elevator.loadFactor() > 0.8){
                 return;
             }
-            if (floorButtons[floorNum][direction]) {
+            if (floorObjects[floorNum][direction]) {
                 insertNewDest(floorNum, direction);
             }
         });
@@ -101,20 +101,20 @@ var obj = {
         function initFloors() {
             _.forEach(floors, function (floor) {
                 var floorNum = floor.floorNum();
-                floorButtons[floorNum] = {};
+                floorObjects[floorNum] = {};
                 floor.on('up_button_pressed', upButtonPressed.bind(undefined, floorNum));
                 floor.on('down_button_pressed', downButtonPressed.bind(undefined, floorNum));
             });
 
             function upButtonPressed(floorNum) {
-                floorButtons[floorNum].up = true;
+                floorObjects[floorNum].up = true;
                 if (!elevator.destinationQueue.length) {
                     insertNewDest(floorNum);
                 }
             }
 
             function downButtonPressed(floorNum) {
-                floorButtons[floorNum].down = true;
+                floorObjects[floorNum].down = true;
                 if (!elevator.destinationQueue.length) {
                     insertNewDest(floorNum);
                 }
