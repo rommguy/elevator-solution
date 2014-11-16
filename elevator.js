@@ -30,15 +30,15 @@ var obj = {
         initElevators();
 
         function initElevators(){
-            _.forEach(elevators, function(elevator, index){
+            _.forEach(elevators, function(elevator){
                 elevator.elevatorDirection = '';
                 elevator.on('idle', function(){
                     var currentFloor = elevator.currentFloor();
-                    var topMostPressedFloor = _.findLastIndex(floorObjects, function(buttonsObj){
-                        return buttonsObj.up || buttonsObj.down;
+                    var topMostPressedFloor = _.findLastIndex(floorObjects, function(floorData){
+                        return (floorData.up || floorData.down) && !floorData.assignedElevator;
                     });
-                    var bottomMostPressedFloor = _.findIndex(floorObjects, function(buttonsObj){
-                        return buttonsObj.up || buttonsObj.down;
+                    var bottomMostPressedFloor = _.findIndex(floorObjects, function(floorData){
+                        return (floorData.up || floorData.down) && !floorData.assignedElevator;
                     });
                     switch (elevator.elevatorDirection) {
                         case 'up':
@@ -152,6 +152,7 @@ var obj = {
             if (elevator.destinationQueue.length === 1){
                 elevator.elevatorDirection = currentFloor > floorNum ? 'down' : 'up';
             }
+            setAssignedElevator(currentFloor, floorNum);
             elevator.checkDestinationQueue();
         }
 
@@ -159,6 +160,14 @@ var obj = {
             return _.find(elevators, function(elevator){
                 return !(elevator.destinationQueue.length);
             });
+        }
+
+        function setAssignedElevator(fromFloor, toFloor){
+            var fromIndex = Math.min(fromFloor, toFloor);
+            var toIndex = Math.max(fromFloor, toFloor);
+            for (var i = fromIndex; i < toIndex; i++){
+                floors[i].assignedElevator = true;
+            }
         }
     },
     update: function (dt, elevators, floors) {
